@@ -26,7 +26,7 @@
         function performSearch() {
             const query = searchInput.value;
             if (query.length >= 2) {
-                axios.get('{{ route("equipment.search.results") }}', {
+                axios.get('{{ route("pmd_cnet_ffu.equipment_search_results") }}', {
                     params: { query: query }
                 })
                 .then(function(response) {
@@ -54,7 +54,7 @@
                 const li = document.createElement('li');
                 li.className = 'list-group-item';
                 const link = document.createElement('a');
-                link.href = `/?parent=${encodeURIComponent(item.Parent)}&network=${encodeURIComponent(item.Network)}&port=${encodeURIComponent(item.Port)}&equipment=${encodeURIComponent(item.Equipment)}`;
+                link.href = `{{ route('pmd_cnet_ffu.edit') }}?parent=${encodeURIComponent(item.Parent)}&network=${encodeURIComponent(item.Network)}&port=${encodeURIComponent(item.Port)}&equipment=${encodeURIComponent(item.Equipment)}`;
                 link.textContent = `${item.Equipment} (Parent: ${item.Parent}, Network: ${item.Network}, Port: ${item.Port})`;
                 li.appendChild(link);
                 ul.appendChild(li);

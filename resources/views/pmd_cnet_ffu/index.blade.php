@@ -5,43 +5,38 @@
     <h1 class="text-2xl font-bold mb-4">GWA PMD Data</h1>
 
     <div class="mb-4">
-        <a href="{{ route('equipment.search') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <a href="{{ route('pmd_cnet_ffu.equipment_search') }}" class="btn btn-primary">
             Equip. Search
         </a>
     </div>
 
     <div id="parentContainer" class="mb-4">
         <h2 class="text-xl font-bold mb-2">Select Parent:</h2>
-        <div id="parentButtons" class="flex flex-wrap gap-2">
+        <div id="parentButtons" class="d-flex flex-wrap gap-2">
             @foreach($parents as $parent)
-                <button class="parent-btn bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded" data-parent="{{ $parent }}">{{ $parent }}</button>
+                <button class="parent-btn btn btn-outline-secondary" data-parent="{{ $parent }}">{{ $parent }}</button>
             @endforeach
         </div>
     </div>
 
-    <div id="networkContainer" class="mb-4 hidden">
+    <div id="networkContainer" class="mb-4 d-none">
         <h2 class="text-xl font-bold mb-2">Select Network:</h2>
-        <div id="networkButtons" class="flex flex-wrap gap-2"></div>
+        <div id="networkButtons" class="d-flex flex-wrap gap-2"></div>
     </div>
 
-    <div id="portContainer" class="mb-4 hidden">
+    <div id="portContainer" class="mb-4 d-none">
         <h2 class="text-xl font-bold mb-2">Select Port:</h2>
-        <div id="portButtons" class="flex flex-wrap gap-2"></div>
+        <div id="portButtons" class="d-flex flex-wrap gap-2"></div>
     </div>
 
-    <div id="equipmentContainer" class="hidden">
+    <div id="equipmentContainer" class="d-none">
         <h2 class="text-xl font-bold mb-2">Equipment List</h2>
-        <table class="w-full border-collapse border">
-            <thead>
-                <tr>
-                    <th class="border p-2">Equipment</th>
-                    <th class="border p-2">Network</th>
-                    <th class="border p-2">Port</th>
-                    <th class="border p-2">CNX_Sequence</th>
-                </tr>
-            </thead>
-            <tbody id="equipmentList"></tbody>
-        </table>
+        <div id="equipmentList" class="equipment-list"></div>
+    </div>
+
+    <div id="errorContainer" class="alert alert-danger d-none" role="alert">
+        <strong>Error!</strong>
+        <span id="errorMessage"></span>
     </div>
 </div>
 @endsection
@@ -49,157 +44,212 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM content loaded');
+    var parentContainer = document.getElementById('parentContainer');
+    var networkContainer = document.getElementById('networkContainer');
+    var portContainer = document.getElementById('portContainer');
+    var equipmentContainer = document.getElementById('equipmentContainer');
+    var errorContainer = document.getElementById('errorContainer');
+    var errorMessage = document.getElementById('errorMessage');
 
-    const parentContainer = document.getElementById('parentContainer');
-    const networkContainer = document.getElementById('networkContainer');
-    const portContainer = document.getElementById('portContainer');
-    const equipmentContainer = document.getElementById('equipmentContainer');
-
-    let selectedParent = '{{ $selectedParent }}';
-    let selectedNetwork = '{{ $selectedNetwork }}';
-    let selectedPort = '{{ $selectedPort }}';
-    let selectedEquipment = '{{ $selectedEquipment }}';
-
-    console.log('Initial values:', { selectedParent, selectedNetwork, selectedPort, selectedEquipment });
+    var selectedParent = '{{ $selectedParent }}';
+    var selectedNetwork = '{{ $selectedNetwork }}';
+    var selectedPort = '{{ $selectedPort }}';
+    var selectedEquipment = '{{ $selectedEquipment }}';
 
     function selectButton(container, value) {
         if (value) {
-            const button = container.querySelector(`[data-${container.id.replace('Container', '')}="${value}"]`);
+            var button = container.querySelector('[data-' + container.id.replace('Container', '') + '="' + value + '"]');
             if (button) {
-                console.log('Selecting button:', value);
                 button.click();
             }
         }
     }
 
-    parentContainer.addEventListener('click', function(e) {
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorContainer.classList.remove('d-none');
+    }
+
+    function hideError() {
+        errorContainer.classList.add('d-none');
+    }
+
+    document.addEventListener('click', function(e) {
         if (e.target.classList.contains('parent-btn')) {
-            selectedParent = e.target.dataset.parent;
-            console.log('Parent selected:', selectedParent);
-            document.querySelectorAll('.parent-btn').forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            e.target.classList.add('bg-blue-500', 'text-white');
+            selectedParent = e.target.getAttribute('data-parent');
+            var parentButtons = document.querySelectorAll('.parent-btn');
+            for (var i = 0; i < parentButtons.length; i++) {
+                parentButtons[i].classList.remove('btn-primary');
+            }
+            e.target.classList.add('btn-primary');
             updateNetworks();
-        }
-    });
-
-    function updateNetworks() {
-        console.log('Updating networks for parent:', selectedParent);
-        return axios.get(`/get-networks?parent=${encodeURIComponent(selectedParent)}`)
-            .then(response => {
-                console.log('Networks received:', response.data);
-                const networkButtons = document.getElementById('networkButtons');
-                networkButtons.innerHTML = '';
-                response.data.forEach(network => {
-                    const button = document.createElement('button');
-                    button.className = 'network-btn bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded';
-                    button.textContent = network;
-                    button.dataset.network = network;
-                    networkButtons.appendChild(button);
-                });
-                networkContainer.classList.remove('hidden');
-                portContainer.classList.add('hidden');
-                equipmentContainer.classList.add('hidden');
-                selectButton(networkContainer, selectedNetwork);
-            })
-            .catch(error => {
-                console.error('Error fetching networks:', error);
-            });
-    }
-
-    networkContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('network-btn')) {
-            selectedNetwork = e.target.dataset.network;
-            console.log('Network selected:', selectedNetwork);
-            document.querySelectorAll('.network-btn').forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            e.target.classList.add('bg-blue-500', 'text-white');
+        } else if (e.target.classList.contains('network-btn')) {
+            selectedNetwork = e.target.getAttribute('data-network');
+            var networkButtons = document.querySelectorAll('.network-btn');
+            for (var i = 0; i < networkButtons.length; i++) {
+                networkButtons[i].classList.remove('btn-primary');
+            }
+            e.target.classList.add('btn-primary');
             updatePorts();
-        }
-    });
-
-    function updatePorts() {
-        console.log('Updating ports for parent:', selectedParent, 'and network:', selectedNetwork);
-        return axios.get(`/get-ports?parent=${encodeURIComponent(selectedParent)}&network=${encodeURIComponent(selectedNetwork)}`)
-            .then(response => {
-                console.log('Ports received:', response.data);
-                const portButtons = document.getElementById('portButtons');
-                portButtons.innerHTML = '';
-                response.data.forEach(port => {
-                    const button = document.createElement('button');
-                    button.className = 'port-btn bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded';
-                    button.textContent = port;
-                    button.dataset.port = port;
-                    portButtons.appendChild(button);
-                });
-                portContainer.classList.remove('hidden');
-                equipmentContainer.classList.add('hidden');
-                selectButton(portContainer, selectedPort);
-            })
-            .catch(error => {
-                console.error('Error fetching ports:', error);
-            });
-    }
-
-    portContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('port-btn')) {
-            selectedPort = e.target.dataset.port;
-            console.log('Port selected:', selectedPort);
-            document.querySelectorAll('.port-btn').forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            e.target.classList.add('bg-blue-500', 'text-white');
+        } else if (e.target.classList.contains('port-btn')) {
+            selectedPort = e.target.getAttribute('data-port');
+            var portButtons = document.querySelectorAll('.port-btn');
+            for (var i = 0; i < portButtons.length; i++) {
+                portButtons[i].classList.remove('btn-primary');
+            }
+            e.target.classList.add('btn-primary');
             updateEquipment();
         }
     });
 
-    function updateEquipment() {
-        console.log('Updating equipment for parent:', selectedParent, 'network:', selectedNetwork, 'and port:', selectedPort);
-        return axios.get(`/get-equipment?parent=${encodeURIComponent(selectedParent)}&network=${encodeURIComponent(selectedNetwork)}&port=${encodeURIComponent(selectedPort)}`)
-            .then(response => {
-                console.log('Equipment received:', response.data);
-                const equipmentList = document.getElementById('equipmentList');
-                equipmentList.innerHTML = '';
-                response.data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="border p-2">${item.Equipment}</td>
-                        <td class="border p-2">${item.Network}</td>
-                        <td class="border p-2">${item.Port}</td>
-                        <td class="border p-2">${item.CNX_Sequence}</td>
-                    `;
-                    if (item.Equipment === selectedEquipment) {
-                        row.classList.add('bg-yellow-200');
-                    }
-                    equipmentList.appendChild(row);
+    function updateNetworks() {
+        hideError();
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '{{ route("pmd_cnet_ffu.get_networks") }}?parent=' + encodeURIComponent(selectedParent), true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                var networkButtons = document.getElementById('networkButtons');
+                networkButtons.innerHTML = '';
+                response.forEach(function(network) {
+                    var button = document.createElement('button');
+                    button.className = 'network-btn btn btn-outline-secondary';
+                    button.textContent = network;
+                    button.setAttribute('data-network', network);
+                    networkButtons.appendChild(button);
                 });
-                equipmentContainer.classList.remove('hidden');
-            })
-            .catch(error => {
-                console.error('Error fetching equipment:', error);
-            });
+                networkContainer.classList.remove('d-none');
+                portContainer.classList.add('d-none');
+                equipmentContainer.classList.add('d-none');
+                selectButton(networkContainer, selectedNetwork);
+            } else {
+                showError('Failed to fetch networks. Please try again.');
+            }
+        };
+        xhr.onerror = function() {
+            showError('Failed to fetch networks. Please try again.');
+        };
+        xhr.send();
     }
 
-    // Initial setup based on URL parameters
+    function updatePorts() {
+        hideError();
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '{{ route("pmd_cnet_ffu.get_ports") }}?parent=' + encodeURIComponent(selectedParent) + '&network=' + encodeURIComponent(selectedNetwork), true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                var portButtons = document.getElementById('portButtons');
+                portButtons.innerHTML = '';
+                response.forEach(function(port) {
+                    var button = document.createElement('button');
+                    button.className = 'port-btn btn btn-outline-secondary';
+                    button.textContent = port;
+                    button.setAttribute('data-port', port);
+                    portButtons.appendChild(button);
+                });
+                portContainer.classList.remove('d-none');
+                equipmentContainer.classList.add('d-none');
+                selectButton(portContainer, selectedPort);
+            } else {
+                showError('Failed to fetch ports. Please try again.');
+            }
+        };
+        xhr.onerror = function() {
+            showError('Failed to fetch ports. Please try again.');
+        };
+        xhr.send();
+    }
+
+    function updateEquipment() {
+        hideError();
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '{{ route("pmd_cnet_ffu.get_equipment") }}?parent=' + encodeURIComponent(selectedParent) + '&network=' + encodeURIComponent(selectedNetwork) + '&port=' + encodeURIComponent(selectedPort), true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                var equipmentList = document.getElementById('equipmentList');
+                equipmentList.innerHTML = '';
+                response.forEach(function(item) {
+                    var equipmentItem = document.createElement('div');
+                    equipmentItem.className = 'equipment-item';
+                    equipmentItem.innerHTML = '<a href="{{ route('pmd_cnet_ffu.edit') }}?equipment=' + encodeURIComponent(item.Equipment) + '&parent=' + encodeURIComponent(selectedParent) + '&network=' + encodeURIComponent(selectedNetwork) + '&port=' + encodeURIComponent(selectedPort) + '" class="btn btn-sm btn-link edit-btn" title="Edit"><i class="fas fa-cog cog-icon"></i></a>' +
+                        '<table class="table table-bordered">' +
+                        '<thead><tr><th>Equipment</th><th>Network</th><th>Port</th><th>CNX_Sequence</th></tr></thead>' +
+                        '<tbody><tr><td>' + item.Equipment + '</td><td>' + item.Network + '</td><td>' + item.Port + '</td><td>' + item.CNX_Sequence + '</td></tr></tbody>' +
+                        '</table>';
+                    if (item.Equipment === selectedEquipment) {
+                        equipmentItem.classList.add('selected-equipment');
+                    }
+                    equipmentList.appendChild(equipmentItem);
+                });
+                equipmentContainer.classList.remove('d-none');
+            } else {
+                showError('Failed to fetch equipment. Please try again.');
+            }
+        };
+        xhr.onerror = function() {
+            showError('Failed to fetch equipment. Please try again.');
+        };
+        xhr.send();
+    }
+
     if (selectedParent) {
-        console.log('Initial parent selected:', selectedParent);
         selectButton(parentContainer, selectedParent);
-        updateNetworks()
-            .then(() => {
-                if (selectedNetwork) {
-                    console.log('Initial network selected:', selectedNetwork);
-                    selectButton(networkContainer, selectedNetwork);
-                    return updatePorts();
-                }
-            })
-            .then(() => {
-                if (selectedPort) {
-                    console.log('Initial port selected:', selectedPort);
-                    selectButton(portContainer, selectedPort);
-                    return updateEquipment();
-                }
-            })
-            .catch(error => {
-                console.error('Error during initial setup:', error);
-            });
+        updateNetworks();
     }
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+    .d-flex {
+        display: flex;
+    }
+    .flex-wrap {
+        flex-wrap: wrap;
+    }
+    .gap-2 > * {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .d-none {
+        display: none;
+    }
+    .equipment-list {
+        display: flex;
+        flex-direction: column;
+    }
+    .equipment-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .edit-btn {
+        padding: 0;
+        font-size: 1.5rem;
+        color: #6c757d;
+        transition: color 0.3s;
+        margin-right: 1rem;
+    }
+    .edit-btn:hover {
+        color: #007bff;
+    }
+    .equipment-item .table {
+        margin-bottom: 0;
+        flex-grow: 1;
+    }
+    .selected-equipment {
+        background-color: #fff3cd;
+    }
+    .cog-icon {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        vertical-align: middle;
+        font-size: inherit;
+        color: inherit;
+    }
+</style>
 @endpush

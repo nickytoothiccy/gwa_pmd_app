@@ -131,4 +131,16 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | FFU Notification Email Address
+    |--------------------------------------------------------------------------
+    |
+    | This email address will be used to send notifications about FFU equipment
+    | updates. You can set this value in your .env file or change it here.
+    |
+    */
+
+    'ffu_notification_email' => env('FFU_NOTIFICATION_EMAIL', 'nickalexee@outlook.com'),
+
 ];
